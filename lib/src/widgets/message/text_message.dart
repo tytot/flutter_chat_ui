@@ -218,6 +218,7 @@ class TextMessageText extends StatelessWidget {
         parse: [
           ...options.matchers,
           mailToMatcher(
+            onEmailPressed: options.onEmailPressed,
             style: bodyLinkTextStyle ??
                 bodyTextStyle.copyWith(
                   decoration: TextDecoration.underline,
@@ -259,6 +260,7 @@ class TextMessageText extends StatelessWidget {
 class TextMessageOptions {
   const TextMessageOptions({
     this.isTextSelectable = true,
+    this.onEmailPressed,
     this.onLinkPressed,
     this.openOnPreviewImageTap = false,
     this.openOnPreviewTitleTap = false,
@@ -267,6 +269,8 @@ class TextMessageOptions {
 
   /// Whether user can tap and hold to select a text content.
   final bool isTextSelectable;
+
+  final void Function(String)? onEmailPressed;
 
   /// Custom link press handler.
   final void Function(String)? onLinkPressed;
