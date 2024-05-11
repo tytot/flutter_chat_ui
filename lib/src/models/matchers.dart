@@ -8,14 +8,17 @@ import '../../flutter_chat_ui.dart';
 
 MatchText mailToMatcher({
   final TextStyle? style,
+  final Function(String email)? onEmailPressed,
 }) =>
     MatchText(
-      onTap: (mail) async {
-        final url = Uri(scheme: 'mailto', path: mail);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url);
-        }
-      },
+      onTap: onEmailPressed != null
+          ? onEmailPressed
+          : (mail) async {
+              final url = Uri(scheme: 'mailto', path: mail);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
       pattern: regexEmail,
       style: style,
     );
