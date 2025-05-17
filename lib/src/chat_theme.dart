@@ -92,6 +92,8 @@ abstract class ChatTheme {
     required this.receivedMessageDocumentIconColor,
     required this.receivedMessageLinkDescriptionTextStyle,
     required this.receivedMessageLinkTitleTextStyle,
+    required this.repliedMessageIndicatorColor,
+    required this.repliedMessageScaleFactor,
     required this.secondaryColor,
     required this.seenIcon,
     required this.sendButtonIcon,
@@ -229,6 +231,12 @@ abstract class ChatTheme {
 
   /// Text style used for displaying link title on received messages.
   final TextStyle receivedMessageLinkTitleTextStyle;
+
+  /// Color of the indicator beside a replied message.
+  final Color repliedMessageIndicatorColor;
+
+  /// Scale factor applied to replied message bubbles.
+  final double repliedMessageScaleFactor;
 
   /// Secondary color, used as a background of received messages.
   final Color secondaryColor;
@@ -396,6 +404,8 @@ class DefaultChatTheme extends ChatTheme {
       fontWeight: FontWeight.w800,
       height: 1.375,
     ),
+    super.repliedMessageIndicatorColor = secondary,
+    super.repliedMessageScaleFactor = 0.69,
     super.secondaryColor = secondary,
     super.seenIcon,
     super.sendButtonIcon,
@@ -570,6 +580,8 @@ class DarkChatTheme extends ChatTheme {
       fontWeight: FontWeight.w800,
       height: 1.375,
     ),
+    super.repliedMessageIndicatorColor = secondaryDark,
+    super.repliedMessageScaleFactor = 0.69,
     super.secondaryColor = secondaryDark,
     super.seenIcon,
     super.sendButtonIcon,

@@ -83,7 +83,9 @@ class Chat extends StatefulWidget {
     this.onMessageTap,
     this.onMessageVisibilityChanged,
     this.onPreviewDataFetched,
+    this.onRepliedMessageTap,
     required this.onSendPressed,
+    this.repliedMessageLabelBuilder,
     this.scrollController,
     this.scrollPhysics,
     this.scrollToUnreadOptions = const ScrollToUnreadOptions(),
@@ -106,8 +108,11 @@ class Chat extends StatefulWidget {
   });
 
   /// See [Message.audioMessageBuilder].
-  final Widget Function(types.AudioMessage, {required int messageWidth})?
-      audioMessageBuilder;
+  final Widget Function(
+    types.AudioMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? audioMessageBuilder;
 
   /// See [Message.avatarBuilder].
   final Widget Function(types.User author)? avatarBuilder;
@@ -129,8 +134,11 @@ class Chat extends StatefulWidget {
   final String Function(DateTime)? customDateHeaderText;
 
   /// See [Message.customMessageBuilder].
-  final Widget Function(types.CustomMessage, {required int messageWidth})?
-      customMessageBuilder;
+  final Widget Function(
+    types.CustomMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? customMessageBuilder;
 
   /// See [Message.customStatusBuilder].
   final Widget Function(types.Message message, {required BuildContext context})?
@@ -168,8 +176,11 @@ class Chat extends StatefulWidget {
   final Widget? emptyState;
 
   /// See [Message.fileMessageBuilder].
-  final Widget Function(types.FileMessage, {required int messageWidth})?
-      fileMessageBuilder;
+  final Widget Function(
+    types.FileMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? fileMessageBuilder;
 
   /// Time (in ms) between two messages when we will visually group them.
   /// Default value is 1 minute, 60000 ms. When time between two messages
@@ -186,8 +197,11 @@ class Chat extends StatefulWidget {
   final Map<String, String>? imageHeaders;
 
   /// See [Message.imageMessageBuilder].
-  final Widget Function(types.ImageMessage, {required int messageWidth})?
-      imageMessageBuilder;
+  final Widget Function(
+    types.ImageMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? imageMessageBuilder;
 
   /// This feature allows you to use a custom image provider.
   /// This is useful if you want to manage image loading yourself, or if you need to cache images.
@@ -264,8 +278,15 @@ class Chat extends StatefulWidget {
   final void Function(types.TextMessage, types.PreviewData)?
       onPreviewDataFetched;
 
+  /// See [Message.onRepliedMessageTap].
+  final void Function(BuildContext context, types.Message)? onRepliedMessageTap;
+
   /// See [Input.onSendPressed].
   final void Function(types.PartialText) onSendPressed;
+
+  /// See [Message.repliedMessageLabelBuilder].
+  final Widget Function(types.Message, bool currentUserIsAuthorOfReply)?
+      repliedMessageLabelBuilder;
 
   /// See [ChatList.scrollController].
   /// If provided, you cannot use the scroll to message functionality.
@@ -292,6 +313,7 @@ class Chat extends StatefulWidget {
     types.TextMessage, {
     required int messageWidth,
     required bool showName,
+    required bool isRepliedMessage,
   })? textMessageBuilder;
 
   /// See [Message.textMessageOptions].
@@ -321,8 +343,11 @@ class Chat extends StatefulWidget {
   final bool? useTopSafeAreaInset;
 
   /// See [Message.videoMessageBuilder].
-  final Widget Function(types.VideoMessage, {required int messageWidth})?
-      videoMessageBuilder;
+  final Widget Function(
+    types.VideoMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? videoMessageBuilder;
 
   /// See [Message.slidableMessageBuilder].
   final Widget Function(types.Message, Widget msgWidget)?
@@ -509,6 +534,8 @@ class ChatState extends State<Chat> {
           },
           onMessageVisibilityChanged: widget.onMessageVisibilityChanged,
           onPreviewDataFetched: _onPreviewDataFetched,
+          onRepliedMessageTap: widget.onRepliedMessageTap,
+          repliedMessageLabelBuilder: widget.repliedMessageLabelBuilder,
           roundBorder: map['nextMessageInGroup'] == true,
           showAvatar: map['nextMessageInGroup'] == false,
           showName: map['showName'] == true,

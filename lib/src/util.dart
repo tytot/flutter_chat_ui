@@ -127,6 +127,7 @@ List<Object> calculateChatMessages(
     final messageHasCreatedAt = message.createdAt != null;
     final nextMessage = isLast ? null : messages[i - 1];
     final nextMessageHasCreatedAt = nextMessage?.createdAt != null;
+    final nextMessageHasRepliedMessage = nextMessage?.repliedMessage != null;
     final nextMessageSameAuthor = message.author.id == nextMessage?.author.id;
     final notMyMessage = message.author.id != user.id;
 
@@ -218,6 +219,14 @@ List<Object> calculateChatMessages(
         0,
         MessageSpacer(
           height: 12,
+          id: message.id,
+        ),
+      );
+    } else if (nextMessageHasRepliedMessage) {
+      chatMessages.insert(
+        0,
+        MessageSpacer(
+          height: 8,
           id: message.id,
         ),
       );

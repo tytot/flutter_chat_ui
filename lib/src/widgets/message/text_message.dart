@@ -19,6 +19,7 @@ class TextMessage extends StatelessWidget {
     super.key,
     required this.emojiEnlargementBehavior,
     required this.hideBackgroundOnEmojiMessages,
+    this.maxLines,
     required this.message,
     this.nameBuilder,
     this.onPreviewDataFetched,
@@ -33,6 +34,9 @@ class TextMessage extends StatelessWidget {
 
   /// See [Message.hideBackgroundOnEmojiMessages].
   final bool hideBackgroundOnEmojiMessages;
+
+  /// Max lines of text.
+  final int? maxLines;
 
   /// [types.TextMessage].
   final types.TextMessage message;
@@ -140,7 +144,10 @@ class TextMessage extends StatelessWidget {
             bodyTextStyle: bodyTextStyle,
             boldTextStyle: boldTextStyle,
             codeTextStyle: codeTextStyle,
+            maxLines: maxLines,
             options: options,
+            overflow:
+                maxLines != null ? TextOverflow.fade : TextOverflow.clip,
             text: message.text,
           ),
       ],

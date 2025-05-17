@@ -1,3 +1,4 @@
+import 'package:fitted_scale/fitted_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:visibility_detector/visibility_detector.dart';
@@ -44,6 +45,8 @@ class Message extends StatelessWidget {
     this.onMessageTap,
     this.onMessageVisibilityChanged,
     this.onPreviewDataFetched,
+    this.onRepliedMessageTap,
+    this.repliedMessageLabelBuilder,
     required this.roundBorder,
     required this.showAvatar,
     required this.showName,
@@ -58,8 +61,11 @@ class Message extends StatelessWidget {
   });
 
   /// Build an audio message inside predefined bubble.
-  final Widget Function(types.AudioMessage, {required int messageWidth})?
-      audioMessageBuilder;
+  final Widget Function(
+    types.AudioMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? audioMessageBuilder;
 
   /// This is to allow custom user avatar builder
   /// By using this we can fetch newest user info based on id.
@@ -81,8 +87,11 @@ class Message extends StatelessWidget {
   final BubbleRtlAlignment? bubbleRtlAlignment;
 
   /// Build a custom message inside predefined bubble.
-  final Widget Function(types.CustomMessage, {required int messageWidth})?
-      customMessageBuilder;
+  final Widget Function(
+    types.CustomMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? customMessageBuilder;
 
   /// Build a custom status widgets.
   final Widget Function(types.Message message, {required BuildContext context})?
@@ -94,8 +103,11 @@ class Message extends StatelessWidget {
   final EmojiEnlargementBehavior emojiEnlargementBehavior;
 
   /// Build a file message inside predefined bubble.
-  final Widget Function(types.FileMessage, {required int messageWidth})?
-      fileMessageBuilder;
+  final Widget Function(
+    types.FileMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? fileMessageBuilder;
 
   /// Hide background for messages containing only emojis.
   final bool hideBackgroundOnEmojiMessages;
@@ -104,8 +116,11 @@ class Message extends StatelessWidget {
   final Map<String, String>? imageHeaders;
 
   /// Build an image message inside predefined bubble.
-  final Widget Function(types.ImageMessage, {required int messageWidth})?
-      imageMessageBuilder;
+  final Widget Function(
+    types.ImageMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? imageMessageBuilder;
 
   /// See [Chat.imageProviderBuilder].
   final ImageProvider Function({
@@ -149,6 +164,13 @@ class Message extends StatelessWidget {
   final void Function(types.TextMessage, types.PreviewData)?
       onPreviewDataFetched;
 
+  /// Called when user taps on a replied message.
+  final void Function(BuildContext context, types.Message)? onRepliedMessageTap;
+
+  /// Build a label shown above the replied message.
+  final Widget Function(types.Message, bool currentUserIsAuthorOfReply)?
+      repliedMessageLabelBuilder;
+
   /// Rounds border of the message to visually group messages together.
   final bool roundBorder;
 
@@ -175,6 +197,7 @@ class Message extends StatelessWidget {
     types.TextMessage, {
     required int messageWidth,
     required bool showName,
+    required bool isRepliedMessage,
   })? textMessageBuilder;
 
   /// See [TextMessage.options].
@@ -187,10 +210,13 @@ class Message extends StatelessWidget {
   final String? userAgent;
 
   /// Build an audio message inside predefined bubble.
-  final Widget Function(types.VideoMessage, {required int messageWidth})?
-      videoMessageBuilder;
+  final Widget Function(
+    types.VideoMessage, {
+    required int messageWidth,
+    required bool isRepliedMessage,
+  })? videoMessageBuilder;
 
-  Widget _avatarBuilder() => showAvatar
+  Widget _avatarBuilder(types.Message message) => showAvatar
       ? avatarBuilder?.call(message.author) ??
           UserAvatar(
             author: message.author,
@@ -202,12 +228,22 @@ class Message extends StatelessWidget {
 
   Widget _bubbleBuilder(
     BuildContext context,
-    BorderRadius borderRadius,
-    bool currentUserIsAuthor,
-    bool enlargeEmojis,
-  ) {
+    types.Message message,
+    BorderRadius borderRadius, {
+    bool isRepliedMessage = false,
+  }) {
+    final user = InheritedUser.of(context).user;
+    final currentUserIsAuthor = user.id == message.author.id;
+    final enlargeEmojis =
+        emojiEnlargementBehavior != EmojiEnlargementBehavior.never &&
+            message is types.TextMessage &&
+            isConsistsOfEmojis(
+              emojiEnlargementBehavior,
+              message,
+            );
+
     final defaultMessage = (enlargeEmojis && hideBackgroundOnEmojiMessages)
-        ? _messageBuilder()
+        ? _messageBuilder(message, isRepliedMessage: isRepliedMessage)
         : Container(
             decoration: BoxDecoration(
               borderRadius: borderRadius,
@@ -218,39 +254,59 @@ class Message extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: borderRadius,
-              child: _messageBuilder(),
+              child:
+                  _messageBuilder(message, isRepliedMessage: isRepliedMessage),
             ),
           );
     return bubbleBuilder != null
         ? bubbleBuilder!(
-            _messageBuilder(),
+            _messageBuilder(message, isRepliedMessage: isRepliedMessage),
             message: message,
             nextMessageInGroup: roundBorder,
           )
         : defaultMessage;
   }
 
-  Widget _messageBuilder() {
+  Widget _messageBuilder(
+    types.Message message, {
+    required bool isRepliedMessage,
+  }) {
     switch (message.type) {
       case types.MessageType.audio:
         final audioMessage = message as types.AudioMessage;
         return audioMessageBuilder != null
-            ? audioMessageBuilder!(audioMessage, messageWidth: messageWidth)
+            ? audioMessageBuilder!(
+                audioMessage,
+                messageWidth: messageWidth,
+                isRepliedMessage: isRepliedMessage,
+              )
             : const SizedBox();
       case types.MessageType.custom:
         final customMessage = message as types.CustomMessage;
         return customMessageBuilder != null
-            ? customMessageBuilder!(customMessage, messageWidth: messageWidth)
+            ? customMessageBuilder!(
+                customMessage,
+                messageWidth: messageWidth,
+                isRepliedMessage: isRepliedMessage,
+              )
             : const SizedBox();
       case types.MessageType.file:
         final fileMessage = message as types.FileMessage;
         return fileMessageBuilder != null
-            ? fileMessageBuilder!(fileMessage, messageWidth: messageWidth)
+            ? fileMessageBuilder!(
+                fileMessage,
+                messageWidth: messageWidth,
+                isRepliedMessage: isRepliedMessage,
+              )
             : FileMessage(message: fileMessage);
       case types.MessageType.image:
         final imageMessage = message as types.ImageMessage;
         return imageMessageBuilder != null
-            ? imageMessageBuilder!(imageMessage, messageWidth: messageWidth)
+            ? imageMessageBuilder!(
+                imageMessage,
+                messageWidth: messageWidth,
+                isRepliedMessage: isRepliedMessage,
+              )
             : ImageMessage(
                 imageHeaders: imageHeaders,
                 imageProviderBuilder: imageProviderBuilder,
@@ -263,7 +319,8 @@ class Message extends StatelessWidget {
             ? textMessageBuilder!(
                 textMessage,
                 messageWidth: messageWidth,
-                showName: showName,
+                showName: isRepliedMessage ? false : showName,
+                isRepliedMessage: isRepliedMessage,
               )
             : TextMessage(
                 emojiEnlargementBehavior: emojiEnlargementBehavior,
@@ -272,22 +329,83 @@ class Message extends StatelessWidget {
                 nameBuilder: nameBuilder,
                 onPreviewDataFetched: onPreviewDataFetched,
                 options: textMessageOptions,
-                showName: showName,
+                showName: isRepliedMessage ? false : showName,
                 usePreviewData: usePreviewData,
                 userAgent: userAgent,
               );
       case types.MessageType.video:
         final videoMessage = message as types.VideoMessage;
         return videoMessageBuilder != null
-            ? videoMessageBuilder!(videoMessage, messageWidth: messageWidth)
+            ? videoMessageBuilder!(
+                videoMessage,
+                messageWidth: messageWidth,
+                isRepliedMessage: isRepliedMessage,
+              )
             : const SizedBox();
       default:
         return const SizedBox();
     }
   }
 
+  Widget _repliedBubbleBuilder(
+    BuildContext context,
+    types.Message repliedMessage,
+    BorderRadius borderRadius,
+    bool currentUserIsAuthorOfReply,
+  ) {
+    final theme = InheritedChatTheme.of(context).theme;
+    final bubble = _bubbleBuilder(
+      context,
+      repliedMessage,
+      borderRadius,
+      isRepliedMessage: true,
+    );
+    final indicator = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(2),
+        color: theme.repliedMessageIndicatorColor,
+      ),
+    );
+    final replyBubble = Stack(children: [
+      Padding(
+        padding: EdgeInsets.only(
+          left: currentUserIsAuthorOfReply ? 0 : 12,
+          right: currentUserIsAuthorOfReply ? 12 : 0,
+        ),
+        child: Opacity(
+          opacity: 0.69,
+          child: FittedScale(
+            scale: theme.repliedMessageScaleFactor,
+            child: bubble,
+          ),
+        ),
+      ),
+      if (!currentUserIsAuthorOfReply)
+        Positioned(left: 0, top: 0, bottom: 0, width: 4, child: indicator),
+      if (currentUserIsAuthorOfReply)
+        Positioned(right: 0, top: 0, bottom: 0, width: 4, child: indicator),
+    ]);
+    return Column(
+      crossAxisAlignment: currentUserIsAuthorOfReply
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        if (repliedMessageLabelBuilder != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: repliedMessageLabelBuilder!(
+              repliedMessage,
+              currentUserIsAuthorOfReply,
+            ),
+          ),
+        replyBubble,
+      ],
+    );
+  }
+
   Widget _statusIcon(
     BuildContext context,
+    types.Message message,
   ) {
     if (!showStatus) return const SizedBox.shrink();
 
@@ -308,13 +426,6 @@ class Message extends StatelessWidget {
     final query = MediaQuery.of(context);
     final user = InheritedUser.of(context).user;
     final currentUserIsAuthor = user.id == message.author.id;
-    final enlargeEmojis =
-        emojiEnlargementBehavior != EmojiEnlargementBehavior.never &&
-            message is types.TextMessage &&
-            isConsistsOfEmojis(
-              emojiEnlargementBehavior,
-              message as types.TextMessage,
-            );
     final messageBorderRadius =
         InheritedChatTheme.of(context).theme.messageBorderRadius;
     final borderRadius = bubbleRtlAlignment == BubbleRtlAlignment.left
@@ -368,15 +479,32 @@ class Message extends StatelessWidget {
             ? null
             : TextDirection.ltr,
         children: [
-          if (!currentUserIsAuthor && showUserAvatars) _avatarBuilder(),
-          if (currentUserIsAuthor && isLeftStatus) _statusIcon(context),
+          if (!currentUserIsAuthor && showUserAvatars) _avatarBuilder(message),
+          if (currentUserIsAuthor && isLeftStatus)
+            _statusIcon(context, message),
           ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: messageWidth.toDouble(),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: currentUserIsAuthor
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
+                if (message.repliedMessage != null)
+                  GestureDetector(
+                    onTap: () => onRepliedMessageTap?.call(
+                      context,
+                      message.repliedMessage!,
+                    ),
+                    child: _repliedBubbleBuilder(
+                      context,
+                      message.repliedMessage!,
+                      BorderRadius.circular(messageBorderRadius),
+                      currentUserIsAuthor,
+                    ),
+                  ),
+                if (message.repliedMessage != null) const SizedBox(height: 6),
                 GestureDetector(
                   onDoubleTap: () => onMessageDoubleTap?.call(context, message),
                   onLongPress: () => onMessageLongPress?.call(context, message),
@@ -391,22 +519,21 @@ class Message extends StatelessWidget {
                           ),
                           child: _bubbleBuilder(
                             context,
+                            message,
                             borderRadius.resolve(Directionality.of(context)),
-                            currentUserIsAuthor,
-                            enlargeEmojis,
                           ),
                         )
                       : _bubbleBuilder(
                           context,
+                          message,
                           borderRadius.resolve(Directionality.of(context)),
-                          currentUserIsAuthor,
-                          enlargeEmojis,
                         ),
                 ),
               ],
             ),
           ),
-          if (currentUserIsAuthor && !isLeftStatus) _statusIcon(context),
+          if (currentUserIsAuthor && !isLeftStatus)
+            _statusIcon(context, message),
         ],
       ),
     );
